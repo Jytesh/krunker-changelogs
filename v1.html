@@ -1,0 +1,304 @@
+
+<div id="wrapper">
+    <textarea id="changelog" style="width: 600px; height: 1080px" placeholder="Paste changelog here"
+        oninput="UPDATE()"></textarea>
+    <a id="download" download="changelog.png">
+        <button type="button" style="width: 600px" onClick="dl()">Download</button>
+    </a>
+</div>
+<canvas id="output" width=1440 height=2560></canvas>
+
+<style>
+    body {
+        margin: 0;
+        display: flex;
+    }
+
+    #wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    input {
+        width: 200px;
+        height: 50px;
+    }
+
+    canvas {
+        max-width: 1080px;
+    }
+</style>
+
+<script>
+    console.clear();
+
+    CanvasRenderingContext2D.prototype.setFill = function (color) { this.fillStyle = color; }
+    CanvasRenderingContext2D.prototype.setStroke = function (color) { this.strokeStyle = color; }
+    CanvasRenderingContext2D.prototype.roundedRect = function (a, b, c, d, e = 0, f = !0, g = !1) { if ("number" == typeof e) e = { tl: e, tr: e, br: e, bl: e }; else { var h = { tl: 0, tr: 0, br: 0, bl: 0 }; for (var i in h) e[i] = e[i] || h[i] } this.beginPath(), this.moveTo(a + e.tl, b), this.lineTo(a + c - e.tr, b), this.quadraticCurveTo(a + c, b, a + c, b + e.tr), this.lineTo(a + c, b + d - e.br), this.quadraticCurveTo(a + c, b + d, a + c - e.br, b + d), this.lineTo(a + e.bl, b + d), this.quadraticCurveTo(a, b + d, a, b + d - e.bl), this.lineTo(a, b + e.tl), this.quadraticCurveTo(a, b, a + e.tl, b), this.closePath(), f && this.fill(), g && this.stroke() };
+
+    var f = new FontFace("FFF Forward", "url(./assets/fonts/gamefont.woff2)");
+
+    f.load().then((font) => {
+
+        document.fonts.add(font);
+
+        class Generator {
+            constructor(changes, scaleMult) {
+
+                if (changes.length < 10) {
+                    return;
+                }
+
+                let cvs = document.getElementById("output"),
+                    ctx = cvs.getContext("2d");
+
+                changes = changes.split("\n").filter(e => e.length > 1);
+
+                this.cvs = cvs;
+                this.ctx = ctx;
+
+                this.colors = {
+                    Header: "#ffffff",
+                    Orange: "#ffbd3e",
+                    TopicHeader: "#505050",
+                    TopicHeaderBorder: "#787878",
+                    TopicBackground: "#202020",
+                    TopicFontColor: "#a6a6a6",
+                    Background: "#333333",
+                    Black: "#000000"
+                }
+
+                this.images = [];
+                let loadCount = 0;
+
+                const imgs = ["Added", "Coding", "Fixes", "General", "Steam", "KPD", "Logo", "Map", "Keyboard", "Market", "Menu", "Meta", "Optimization", "Servers", "Other", "Settings", "Social"];
+
+                imgs.forEach(f => {
+
+                    let img = new Image(),
+                        data = {};
+                    img.src = "./assets/img/" + f + ".png";
+                    data.img = img;
+                    data.img.onload = () => {
+                        loadCount++;
+
+                        if (loadCount === imgs.length)
+                            this.gen(cvs, ctx);
+                    }
+                    data.img.scale = 0.5;
+
+                    switch (f) {
+
+                        case "General":
+                            data.keywords = ["general"];
+                            data.img.scale = 1;
+                            break;
+
+                        case "KPD":
+                            data.keywords = ["kpd", "anti cheat"];
+                            break;
+
+                        case "Meta":
+                            data.keywords = ["balancing", "meta", "weapons", "gameplay"];
+                            break;
+
+                        case "Coding":
+                            data.keywords = ["krunkscript"];
+                            break;
+
+                        case "Keyboard":
+                            data.keywords = ["control", "controls", "keyboard", "keybind", "keyboard"];
+                            break;
+
+                        case "Steam":
+                            data.keywords = ["steam"];
+                            break;
+
+                        case "Optimization":
+                            data.keywords = ["servers", "optimization", "optimizations"];
+                            break;
+
+                        case "Market":
+                            data.keywords = ["items", "market"];
+                            break;
+
+                        case "Menu":
+                            data.keywords = ["ui", "menu", "menus", "css"];
+                            break;
+
+                        case "Map":
+                            data.keywords = ["map", "changes", "games", "maps", "editor"];
+                            break;
+
+                        default:
+                            data.keywords = [];
+                            break;
+                    }
+
+                    data.name = f;
+                    this.images.push(data);
+                })
+
+                this.version = changes[0].includes("had an update") ?
+                    changes.shift().split("!")[1].trim() :
+                    null;
+
+                let cat = "",
+                    type = "";
+
+                this.changes = changes.map((e, i) => {
+
+                    e = e.replace(/\s+/g, " ");
+
+                    if (e[0] == "*") {
+                        if (e[1] != " ") {
+                            e = e.split("");
+                            e.splice(1, 0, " ");
+                            e = e.join("");
+                        }
+                        cat = e.split("* ")[1].trim();
+                        e = e.split("* ")[1].trim();
+                    }
+
+                    type = this.images.find(a => a.name == cat || cat.split(" ").some(f => f == a.name) || cat.split(" ").some(f => a.keywords.includes(f.toLowerCase())));
+
+                    if (!type) {
+                        type = this.images.find(e => e.name == "General");
+                    }
+
+                    type.displayName = cat;
+
+                    if (cat !== e)
+                        return { txt: e.split("-")[1] || e, type };
+
+                    else return null;
+                });
+                this.changes = this.changes.filter(Boolean);
+            }
+
+            /**
+            * 
+            * @param {Canvas} cvs 
+            * @param {CanvasRenderingContext2D} ctx 
+            */
+            gen(cvs, ctx) {
+
+                ctx.font = "38px FFF Forward";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+
+                let w = cvs.width,
+                    h = cvs.height,
+                    textWidth = this.version ? ctx.measureText(this.version).width : 0;
+
+                // Border Fill
+                ctx.setFill(this.colors.Orange);
+                ctx.fillRect(0, 0, w, h);
+
+                // Border Black Inline
+                ctx.setFill(this.colors.Black);
+                ctx.fillRect(8, 8, w - 16, h - 16);
+
+                // Background
+                ctx.setFill(this.colors.Background);
+                ctx.fillRect(8, 8, w - 18, h - 18);
+
+                // UPDATE VERSION
+                if (this.version !== null) {
+                    ctx.setFill(this.colors.Orange);
+                    ctx.roundedRect(w - 58, 162, -320 - textWidth, -102, -16)
+                    ctx.filter = "drop-shadow(0 0 4px #202020) drop-shadow(0 0 4px #202020)";
+                    ctx.drawImage(this.images.find(e => e.name == "Logo").img, w - 156, 62, 96, 96);
+                    ctx.filter = "none";
+                    ctx.setFill(this.colors.Header);
+                    ctx.fillText(`Update ${this.version}`, w - 350 - textWidth, 120);
+                }
+
+                ctx.font = "20px FFF Forward";
+
+                for (let lastType, type, ch = 0, ct = 0, nl = 0, i = 0; i < this.changes.length; i++) {
+
+                    type = this.changes[i].type;
+
+                    if (lastType !== type) {
+
+                        let _x = 58,
+                            _y = (this.version ? 210 : 60) + (nl * 110) + ct,
+                            _w = w - (_x * 2),
+                            _h = 52,
+                            _changes = this.changes.filter(e => e.type.name == type.name);
+
+                        ctx.setFill(this.colors.TopicHeaderBorder);
+                        ctx.fillRect(_x, _y, _w, _h);
+                        ctx.setFill(this.colors.TopicHeader);
+                        ctx.fillRect(_x + 4, _y + 4, _w - 8, _h - 8);
+
+                        let _off = (20 * (1 - type.img.scale)),
+                            size = 40 * type.img.scale;
+
+                        ctx.drawImage(type.img, _x + 6 + _off, _y + 6 + _off, size, size);
+                        ctx.setFill(this.colors.Header);
+
+                        ctx.shadowColor = "#000000";
+                        ctx.shadowBlur = 2;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 0;
+
+                        ctx.fillText(type.displayName, _x + 48, _y + 32);
+
+                        ctx.shadowColor = "";
+                        ctx.shadowBlur = 0;
+
+                        let len = _changes.length;
+                        ch = len * 60 + Math.max(0, (len - 1) * 2);
+                        ct += ch;
+                        nl++;
+
+                        ctx.setFill(this.colors.TopicBackground);
+                        ctx.roundedRect(70, _y + 70, w - (_x * 2) - 24, ch, 5);
+
+                        for (let jh = 0, j = 0; j < len; j++) {
+
+                            jh = _y + (j * 60) + Math.max(0, j * 2);
+
+                            if (j > 0 && j < len) {
+                                ctx.setFill(this.colors.TopicHeader);
+                                ctx.fillRect(86, jh + 70, w - (_x * 2) - 56, 2);
+                            }
+
+                            ctx.setFill(this.colors.TopicFontColor);
+                            ctx.fillText(_changes[j].txt, 78, jh + 108);
+                        }
+                    }
+
+                    // for (let word, j = 0; j < this.changes[i].txt.length; j++) {
+                    //     word = this.changes[i].txt[j];
+                    //     if (205 + lw + ctx.measureText(word + " ").width >= w - 86) {
+                    //         nl++;
+                    //         lw = 0;
+                    //     }
+
+                    //     ctx.fillText(word + " ", 50 + lw, 310 + (50 * i) + (50 * nl));
+
+                    //     lw += ctx.measureText(word + " ").width;
+                    // }
+                    lastType = type;
+                }
+            }
+        }
+
+        window.GEN = new Generator(``, 1080, 1920, 1);
+
+        const changelog = document.getElementById("changelog");
+
+        window.UPDATE = function () {
+            window.GEN = new Generator(changelog.value);
+        }
+
+        window.dl = function () {
+            var download = document.getElementById("download");
+            var image = document.getElementById("output").toDataURL("image/png").replace("image/png", "image/octet-stream");
+            download.setAttribute("href", image);
+        }
+    })
+</script>
