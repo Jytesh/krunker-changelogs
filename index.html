@@ -4,11 +4,19 @@
     placeholder="Paste changelog here"
     oninput="UPDATE()"
   ></textarea>
+  <button onClick="document.querySelector('input').click()">
+    Upload Header Image
+  </button>
+  <input
+    style="visibility: collapse; width: 0px"
+    type="file"
+    onChange="handleFile(this.files[0])"
+  />
   <a id="download" download="changelog.png">
     <button type="button" style="width: 600px" onClick="dl()">Download</button>
   </a>
 </div>
-<canvas id="output" width="1440" height="2560"></canvas>
+<canvas id="output" width="1540" height="2560"></canvas>
 
 <style>
   body {
@@ -21,29 +29,30 @@
   #wrapper {
     display: flex;
     flex-direction: column;
+    padding: 1vh 1vw;
   }
 
   textarea {
     width: 600px;
     height: 800px;
-    margin: 1vh 1vw;
     padding: 1vh 1vw;
     background-color: rgb(32, 35, 36);
     color: rgb(255, 191, 69);
   }
 
   #download {
-    margin: 1vh 1vw;
     border-radius: 2rem;
   }
 
   button {
     background-color: #2b2b2b;
     color: #ffbd3e;
+    margin: 1vh 0;
   }
   canvas {
     max-width: 1080px;
   }
 </style>
 
+<script src="./lib.js"></script>
 <script src="./index.js"></script>
